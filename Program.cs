@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.Json;
 Console.Clear();
 
 Stopwatch InefficientStopwatch = new Stopwatch();
@@ -7,20 +9,40 @@ Stopwatch EfficientStopwatch = new Stopwatch();
 ZombieInfectionCalculations infectionCalculation = new();
 
 // Setup Inefficent Method
-InefficientStopwatch.Start();
-infectionCalculation.inefficient.SimulateInfection();
-InefficientStopwatch.Stop();
+// InefficientStopwatch.Start();
+// infectionCalculation.inefficient.SimulateInfection();
+// InefficientStopwatch.Stop();
 
 // Setup Efficent Method
-EfficientStopwatch.Start();
-infectionCalculation.efficient.SimulateInfection();
-EfficientStopwatch.Stop();
+// EfficientStopwatch.Start();
+// infectionCalculation.efficient.SimulateInfection();
+// EfficientStopwatch.Stop();
 
 // Log output
-Console.WriteLine($"Inefficient method finished in {InefficientStopwatch.ElapsedMilliseconds}ms");
-Console.WriteLine($"Humans: {infectionCalculation.inefficient.HumanCount} Zombies: {infectionCalculation.inefficient.ZombieCount}");
-Console.WriteLine($"Efficient method finished in {EfficientStopwatch.ElapsedMilliseconds}ms");
-Console.WriteLine($"Humans: {infectionCalculation.efficient.HumanCount} Zombies: {infectionCalculation.efficient.ZombieCount}");
+// Console.WriteLine($"Inefficient method finished in {InefficientStopwatch.ElapsedMilliseconds}ms");
+// Console.WriteLine($"Humans: {infectionCalculation.inefficient.HumanCount} Zombies: {infectionCalculation.inefficient.ZombieCount}");
+// Console.WriteLine($"Efficient method finished in {EfficientStopwatch.ElapsedMilliseconds}ms");
+// Console.WriteLine($"Humans: {infectionCalculation.efficient.HumanCount} Zombies: {infectionCalculation.efficient.ZombieCount}");
+
+Stopwatch InefficientQStopwatch = new Stopwatch();
+Stopwatch EfficientQStopwatch = new Stopwatch();
+FoodStorageInventory foodStorage = new();
+
+// Setup Inefficent Method
+InefficientQStopwatch.Start();
+foodStorage.CreateNewQueue();
+foodStorage.foodStorage_Queue.PrintNextItem();
+InefficientQStopwatch.Stop();
+
+// Setup Efficent Method
+EfficientQStopwatch.Start();
+foodStorage.CreateNewPriority();
+foodStorage.foodStorage_Priority.PrintNextItem();
+EfficientQStopwatch.Stop();
+// Log output
+Console.WriteLine($"Inefficient method finished in {InefficientQStopwatch.ElapsedMilliseconds}ms");
+Console.WriteLine($"Efficient method finished in {EfficientQStopwatch.ElapsedMilliseconds}ms");
+
 public class ZombieInfectionCalculations
 {
     // Change this to change the size of the dataset
@@ -273,6 +295,132 @@ public class ZombieInfectionCalculations
                 }
             }
             return true;
+        }
+    }
+}
+
+public class FoodStorageInventory
+{
+    private string FoodFile = "food.json";
+    private string FoodExpFile = "FoodExp.json";
+
+    public FoodStorage_Queue foodStorage_Queue { get; set; }
+    public FoodStorage_Priority foodStorage_Priority { get; set; }
+
+    public Dictionary<string, int> Food { get; set; } = new();
+    public class FoodList
+    {
+        public List<string> FoodItem { get; set; }
+    }
+    public FoodStorageInventory()
+    {
+        AddExp();
+    }
+    public void CreateNewQueue()
+    {
+        foodStorage_Queue = new(Food);
+    }
+    public void CreateNewPriority()
+    {
+        foodStorage_Priority = new(Food);
+    }
+    public class FoodInventoryWithExp
+    {
+        public List<Dictionary<string, int>> Food { get; set; }
+    }
+    public void AddExp()
+    {
+        var food = LoadFoodData();
+        foreach (var item in food.FoodItem)
+        {
+            Random random = new();
+            int exp = random.Next(60);
+            Food.Add(item, exp);
+        }
+    }
+    public void ConvertAndSave()
+    {
+        var food = LoadFoodData();
+        foreach (var item in food.FoodItem)
+        {
+            Random random = new();
+            int exp = random.Next(60);
+            Food.Add(item, exp);
+        }
+
+
+        string json = JsonSerializer.Serialize(Food);
+
+        File.WriteAllText(FoodExpFile, json);
+
+        foreach (var item in Food)
+        {
+            Console.WriteLine($"{item.Key} Exp: {item.Value}");
+        }
+    }
+    public FoodList LoadFoodData()
+    {
+        var food = JsonSerializer.Deserialize<FoodList>(File.ReadAllText(FoodFile));
+
+        return food;
+    }
+
+    public class FoodStorage_Queue
+    {
+        Queue<KeyValuePair<string, int>> Food { get; set; } = new();
+        public FoodStorage_Queue(Dictionary<string, int> food)
+        {
+            CreateQueue(ref food);
+        }
+        private void CreateQueue(ref Dictionary<string, int> food)
+        {
+            for (int i = 0; i < food.Count; i++)
+            {
+                KeyValuePair<string, int> NextToEat = OrderByExp(food);
+                Food.Enqueue(NextToEat);
+                food.Remove(NextToEat.Key);
+            }
+        }
+        public KeyValuePair<string, int> OrderByExp(Dictionary<string, int> food)
+        {
+            int exp = 1000;
+            foreach (var item in food)
+            {
+                exp = Math.Min(item.Value, exp);
+            }
+            KeyValuePair<string, int> NextToEat = food.FirstOrDefault(f => f.Value == exp);
+            return NextToEat;
+        }
+        public void PrintNextItem()
+        {
+            for (int i = 0; i < Food.Count; i++)
+            {
+                KeyValuePair<string, int> Next = Food.Dequeue();
+                Console.WriteLine($"{Next.Key} Exp: {Next.Value}");
+            }
+        }
+    }
+    public class FoodStorage_Priority
+    {
+        PriorityQueue<KeyValuePair<string, int>, int> Food { get; set; } = new();
+        public FoodStorage_Priority(Dictionary<string, int> food)
+        {
+            CreateQueue(food);
+        }
+        private void CreateQueue(Dictionary<string, int> food)
+        {
+            foreach (var item in food)
+            {
+                Food.Enqueue(item, item.Value);
+            }
+        }
+        public void PrintNextItem()
+        {
+            for (int i = 0; i < Food.Count; i++)
+            {
+                KeyValuePair<string, int> Next = Food.Dequeue();
+                Console.WriteLine($"{Next.Key} Exp: {Next.Value}");
+            }
         }
     }
 }
