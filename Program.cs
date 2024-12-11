@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 Console.Clear();
-
+#region Infection
 Stopwatch InefficientStopwatch = new Stopwatch();
 Stopwatch EfficientStopwatch = new Stopwatch();
 ZombieInfectionCalculations infectionCalculation = new();
@@ -23,7 +23,9 @@ ZombieInfectionCalculations infectionCalculation = new();
 // Console.WriteLine($"Humans: {infectionCalculation.inefficient.HumanCount} Zombies: {infectionCalculation.inefficient.ZombieCount}");
 // Console.WriteLine($"Efficient method finished in {EfficientStopwatch.ElapsedMilliseconds}ms");
 // Console.WriteLine($"Humans: {infectionCalculation.efficient.HumanCount} Zombies: {infectionCalculation.efficient.ZombieCount}");
+#endregion
 
+#region FoodStorageInventory
 Stopwatch InefficientQStopwatch = new Stopwatch();
 Stopwatch EfficientQStopwatch = new Stopwatch();
 FoodStorageInventory foodStorage = new();
@@ -42,6 +44,7 @@ EfficientQStopwatch.Stop();
 // Log output
 Console.WriteLine($"Inefficient method finished in {InefficientQStopwatch.ElapsedMilliseconds}ms");
 Console.WriteLine($"Efficient method finished in {EfficientQStopwatch.ElapsedMilliseconds}ms");
+#endregion
 
 public class ZombieInfectionCalculations
 {
