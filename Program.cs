@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 Console.Clear();
 
 Stopwatch InefficientStopwatch = new Stopwatch();
@@ -17,7 +18,9 @@ EfficientStopwatch.Stop();
 
 // Log output
 Console.WriteLine($"Inefficient method finished in {InefficientStopwatch.ElapsedMilliseconds}ms");
+Console.WriteLine($"Humans: {infectionCalculation.inefficient.HumanCount} Zombies: {infectionCalculation.inefficient.ZombieCount}");
 Console.WriteLine($"Efficient method finished in {EfficientStopwatch.ElapsedMilliseconds}ms");
+Console.WriteLine($"Humans: {infectionCalculation.efficient.HumanCount} Zombies: {infectionCalculation.efficient.ZombieCount}");
 public class ZombieInfectionCalculations
 {
     // Change this to change the size of the dataset
@@ -60,9 +63,13 @@ public class ZombieInfectionCalculations
     public class Inefficient
     {
         int[,] ZombieMatrix { get; set; }
+        public int ZombieCount { get; private set; }
+        public int HumanCount { get; private set; }
         public Inefficient(int[,] Matrix)
         {
             ZombieMatrix = Matrix;
+            HumanCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
+            ZombieCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
         }
 
 
@@ -79,26 +86,26 @@ public class ZombieInfectionCalculations
                 }
                 Rows.Add(Row);
             }
-            foreach (var Row in Rows)
-            {
-                foreach (var index in Row)
-                {
-                    if (index == 0)
-                    {
-                        Console.Write($"{index}");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.Write($"{index}");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
+            // foreach (var Row in Rows)
+            // {
+            //     foreach (var index in Row)
+            //     {
+            //         if (index == 0)
+            //         {
+            //             Console.Write($"{index}");
+            //             Console.ForegroundColor = ConsoleColor.White;
+            //         }
+            //         else
+            //         {
+            //             Console.ForegroundColor = ConsoleColor.Red;
+            //             Console.Write($"{index}");
+            //             Console.ForegroundColor = ConsoleColor.White;
+            //         }
 
-                }
-                Console.Write("|");
-                Console.WriteLine();
-            }
+            //     }
+            //     Console.Write("|");
+            //     Console.WriteLine();
+            // }
         }
 
         void CalculateNextInfection()
@@ -129,17 +136,15 @@ public class ZombieInfectionCalculations
 
         public void SimulateInfection()
         {
-            int NumberOfHumans = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
-            int NumberOfZombies = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
-            while (NumberOfHumans > 0)
+            while (HumanCount > 0)
             {
                 int[,] PreviousState = (int[,])ZombieMatrix.Clone();
-                NumberOfHumans = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
-                NumberOfZombies = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
+                HumanCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
+                ZombieCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
                 PrintZombieMatrix();
                 CalculateNextInfection();
-                Console.WriteLine($"Humans: {NumberOfHumans} Zombies: {NumberOfZombies}");
-                Thread.Sleep(1000);
+                Console.WriteLine($"Humans: {HumanCount} Zombies: {ZombieCount}");
+                // Thread.Sleep(1000);
                 if (CheckStaleCondition(ZombieMatrix, PreviousState)) break;
             }
         }
@@ -163,85 +168,94 @@ public class ZombieInfectionCalculations
     public class Efficient
     {
         int[,] ZombieMatrix { get; set; }
+        public int ZombieCount { get; private set; }
+        public int HumanCount { get; private set; }
         public Efficient(int[,] Matrix)
         {
             ZombieMatrix = Matrix;
+            HumanCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
+            ZombieCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
         }
 
         void PrintZombieMatrix()
         {
             Console.Clear();
-            List<List<int>> Rows = new();
-            for (int Y = 0; Y < ZombieMatrix.GetLength(1); Y++)
-            {
-                List<int> Row = new();
-                for (int X = 0; X < ZombieMatrix.GetLength(0); X++)
-                {
-                    Row.Add(ZombieMatrix[X, Y]);
-                }
-                Rows.Add(Row);
-            }
-            foreach (var Row in Rows)
-            {
-                foreach (var index in Row)
-                {
-                    if (index == 0)
-                    {
-                        Console.Write($"{index}");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.Write($"{index}");
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
+            ConcurrentBag<List<int>> Rows = new();
+            int width = ZombieMatrix.GetLength(0);
+            int height = ZombieMatrix.GetLength(1);
 
-                }
-                Console.Write("|");
-                Console.WriteLine();
-            }
+            Parallel.For(0, height, Y =>
+                        {
+                            List<int> Row = new();
+
+                            for (int X = 0; X < width; X++)
+                            {
+                                Row.Add(ZombieMatrix[X, Y]);
+                            };
+                            Rows.Add(Row);
+                        });
+            // foreach (var Row in Rows.ToList())
+            // {
+            //     foreach (var index in Row)
+            //     {
+            //         if (index == 0)
+            //         {
+            //             Console.Write($"{index}");
+            //             Console.ForegroundColor = ConsoleColor.White;
+            //         }
+            //         else
+            //         {
+            //             Console.ForegroundColor = ConsoleColor.Blue;
+            //             Console.Write($"{index}");
+            //             Console.ForegroundColor = ConsoleColor.White;
+            //         }
+            //     }
+            //     Console.Write("|");
+            //     Console.WriteLine();
+            // }
         }
 
         void CalculateNextInfection()
         {
             int[,] Copy = (int[,])ZombieMatrix.Clone();
+            int width = ZombieMatrix.GetLength(0);
+            int height = ZombieMatrix.GetLength(1);
 
-            for (int Y = 0; Y < ZombieMatrix.GetLength(1); Y++)
+            for (int X = 0; X < width; X++)
             {
-                for (int X = 0; X < ZombieMatrix.GetLength(0); X++)
-                {
-                    int HorizontalSum = 0;
-                    int VerticalSum = 0;
-                    if (X + 1 < ZombieMatrix.GetLength(0) && X - 1 >= 0)
+                Parallel.For(0, height, Y =>
                     {
-                        HorizontalSum = Copy[X + 1, Y] + Copy[X - 1, Y];
-                    }
-                    if (Y + 1 < ZombieMatrix.GetLength(1) && Y - 1 >= 0)
-                    {
-                        VerticalSum = Copy[X, Y + 1] + Copy[X, Y - 1];
-                    }
-                    if (VerticalSum == 2 || HorizontalSum == 2)
-                    {
-                        ZombieMatrix[X, Y] = 1;
-                    }
-                }
+                        int HorizontalSum = 0;
+                        int VerticalSum = 0;
+                        if (X + 1 < ZombieMatrix.GetLength(0) && X - 1 >= 0)
+                        {
+                            HorizontalSum = Copy[X + 1, Y] + Copy[X - 1, Y];
+                        }
+                        if (Y + 1 < ZombieMatrix.GetLength(1) && Y - 1 >= 0)
+                        {
+                            VerticalSum = Copy[X, Y + 1] + Copy[X, Y - 1];
+                        }
+                        if (VerticalSum == 2 || HorizontalSum == 2)
+                        {
+                            ZombieMatrix[X, Y] = 1;
+                        }
+                    });
             }
         }
 
         public void SimulateInfection()
         {
-            int NumberOfHumans = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
-            int NumberOfZombies = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
-            while (NumberOfHumans > 0)
+            HumanCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
+            ZombieCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
+            while (HumanCount > 0)
             {
                 int[,] PreviousState = (int[,])ZombieMatrix.Clone();
-                NumberOfHumans = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
-                NumberOfZombies = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
+                HumanCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 0).Count();
+                ZombieCount = ZombieMatrix.Cast<int>().ToArray().Where(i => i == 1).Count();
                 PrintZombieMatrix();
                 CalculateNextInfection();
-                Console.WriteLine($"Humans: {NumberOfHumans} Zombies: {NumberOfZombies}");
-                Thread.Sleep(1000);
+                Console.WriteLine($"Humans: {HumanCount} Zombies: {ZombieCount}");
+                // Thread.Sleep(1000);                
                 if (CheckStaleCondition(ZombieMatrix, PreviousState)) break;
             }
         }
