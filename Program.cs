@@ -31,8 +31,18 @@ void PrintZombieMatrix()
     {
         foreach (var index in Row)
         {
-            Console.Write($"{index}");
-            // Console.Write($"| {index} ");
+            if (index == 0)
+            {
+                Console.Write($"{index}");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write($"{index}");
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+
         }
         Console.Write("|");
         // Console.SetCursorPosition(0, Console.GetCursorPosition().Top + 1);
@@ -79,7 +89,7 @@ void SimulateInfection()
         PrintZombieMatrix();
         CalculateNextInfection();
         Console.WriteLine($"Humans: {NumberOfHumans} Zombies: {NumberOfZombies}");
-        // Thread.Sleep(1000);
+        Thread.Sleep(1000);
         if (CheckStaleCondition(ZombieMatrix, PreviousState)) break;
     }
 }
