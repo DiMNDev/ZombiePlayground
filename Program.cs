@@ -1,8 +1,15 @@
-﻿Console.Clear();
+﻿using System.Diagnostics;
+Console.Clear();
 
-ZombieInfectionCalculation infectionCalculation = new();
+Stopwatch InefficientStopwatch = new Stopwatch();
+Stopwatch EfficientStopwatch = new Stopwatch();
+
+Inefficient_ZombieInfectionCalculation infectionCalculation = new();
+InefficientStopwatch.Start();
 infectionCalculation.SimulateInfection();
-public class ZombieInfectionCalculation
+InefficientStopwatch.Stop();
+Console.WriteLine($"This method finished in {InefficientStopwatch.ElapsedMilliseconds}ms");
+public class Inefficient_ZombieInfectionCalculation
 {
     int[,] ZombieMatrix = new int[Console.WindowWidth - 1, Console.WindowHeight - 1];
 
